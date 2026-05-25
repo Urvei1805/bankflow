@@ -351,3 +351,30 @@ bankflow/
 **Built with ❤️ for the FinTech/Cloud/Cybersecurity community**
 
 </div>
+## ?? Environment Variables and Secrets
+
+BankFlow uses environment variables for configuration. All sensitive values are designed to be injected via AWS Secrets Manager in production.
+
+### Local Development Variables
+For local Docker Compose, use the .env file (copy from .env.example).
+Safe defaults are provided. You do not need to configure AWS Secrets Manager locally.
+- ENV (default: development)
+- LOG_LEVEL (default: INFO)
+- CORS_ORIGINS (default: http://localhost:3000,http://localhost:5173)
+
+### AWS ECS Variables (Non-Sensitive)
+In AWS, the following can be injected directly as standard ECS Environment Variables via Terraform/CDK:
+- ENV: production
+- LOG_LEVEL: INFO
+- AUTH_SERVICE_URL, BANKING_API_URL, ANALYTICS_SERVICE_URL (Internal ALB endpoints)
+- CORS_ORIGINS: Your CloudFront frontend domain
+- POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER
+- REDIS_HOST, REDIS_PORT
+
+### AWS Secrets Manager Variables
+In AWS, all sensitive values MUST be stored in AWS Secrets Manager and injected into the ECS Task Definition as secrets. **NEVER** hardcode these in Terraform or standard ECS env vars.
+- POSTGRES_PASSWORD: RDS password
+- DATABASE_URL (Optional): Full postgresql connection string if preferred
+- JWT_PRIVATE_KEY_PATH / JWT_PUBLIC_KEY_PATH (or injected as raw keys if modified)
+- JWT_SECRET_KEY: HS256 fallback secret
+- API_KEY_SECRET: Secret used to hash internal API keys

@@ -49,7 +49,8 @@ services:
     ports:
       - "8001:8001"
     environment:
-      ENVIRONMENT: development
+      ENV: development
+      LOG_LEVEL: INFO
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: bankflow
@@ -60,6 +61,7 @@ services:
       JWT_SECRET_KEY: dev-secret-change-in-production
       JWT_PRIVATE_KEY_PATH: /app/keys/private.pem
       JWT_PUBLIC_KEY_PATH: /app/keys/public.pem
+      API_KEY_SECRET: dev-api-key-secret-change-in-production
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173}
     depends_on:
       postgres:
@@ -86,7 +88,8 @@ services:
     ports:
       - "8002:8002"
     environment:
-      ENVIRONMENT: development
+      ENV: development
+      LOG_LEVEL: INFO
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: bankflow
@@ -95,8 +98,12 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       AUTH_SERVICE_URL: http://auth-service:8001
+      BANKING_API_URL: http://banking-api-service:8002
+      ANALYTICS_SERVICE_URL: http://analytics-service:8003
       JWT_SECRET_KEY: dev-secret-change-in-production
       JWT_PUBLIC_KEY_PATH: /app/keys/public.pem
+      JWT_PRIVATE_KEY_PATH: /app/keys/private.pem
+      API_KEY_SECRET: dev-api-key-secret-change-in-production
       RATE_LIMIT_PER_MINUTE: 100
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173}
     depends_on:
@@ -126,7 +133,8 @@ services:
     ports:
       - "8003:8003"
     environment:
-      ENVIRONMENT: development
+      ENV: development
+      LOG_LEVEL: INFO
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: bankflow
@@ -134,6 +142,13 @@ services:
       POSTGRES_PASSWORD: change_me_in_production
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      AUTH_SERVICE_URL: http://auth-service:8001
+      BANKING_API_URL: http://banking-api-service:8002
+      ANALYTICS_SERVICE_URL: http://analytics-service:8003
+      JWT_SECRET_KEY: dev-secret-change-in-production
+      JWT_PUBLIC_KEY_PATH: /app/keys/public.pem
+      JWT_PRIVATE_KEY_PATH: /app/keys/private.pem
+      API_KEY_SECRET: dev-api-key-secret-change-in-production
       ANALYTICS_CACHE_TTL: 60
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173}
     depends_on:
