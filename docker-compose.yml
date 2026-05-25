@@ -1,0 +1,171 @@
+# ============================================================
+# BankFlow — Docker Compose (Local MVP)
+# ============================================================
+# Usage: docker compose up --build
+# ============================================================
+
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: bankflow-postgres
+    environment:
+      POSTGRES_DB: bankflow
+      POSTGRES_USER: bankflow_user
+      POSTGRES_PASSWORD: change_me_in_production
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bankflow_user -d bankflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bankflow-net
+
+  # ── Redis ───────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: bankflow-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bankflow-net
+
+  # ── Auth Service ────────────────────────────────────────────
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: bankflow-auth
+    ports:
+      - "8001:8001"
+    environment:
+      ENVIRONMENT: development
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: bankflow
+      POSTGRES_USER: bankflow_user
+      POSTGRES_PASSWORD: change_me_in_production
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET_KEY: dev-secret-change-in-production
+      JWT_PRIVATE_KEY_PATH: /app/keys/private.pem
+      JWT_PUBLIC_KEY_PATH: /app/keys/public.pem
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    networks:
+      - bankflow-net
+    volumes:
+      - auth_keys:/app/keys
+
+  # ── Banking API Service ─────────────────────────────────────
+  banking-api-service:
+    build:
+      context: ./services/banking-api-service
+      dockerfile: Dockerfile
+    container_name: bankflow-banking
+    ports:
+      - "8002:8002"
+    environment:
+      ENVIRONMENT: development
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: bankflow
+      POSTGRES_USER: bankflow_user
+      POSTGRES_PASSWORD: change_me_in_production
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      AUTH_SERVICE_URL: http://auth-service:8001
+      JWT_SECRET_KEY: dev-secret-change-in-production
+      JWT_PUBLIC_KEY_PATH: /app/keys/public.pem
+      RATE_LIMIT_PER_MINUTE: 100
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    networks:
+      - bankflow-net
+    volumes:
+      - auth_keys:/app/keys:ro
+
+  # ── Analytics Service ───────────────────────────────────────
+  analytics-service:
+    build:
+      context: ./services/analytics-service
+      dockerfile: Dockerfile
+    container_name: bankflow-analytics
+    ports:
+      - "8003:8003"
+    environment:
+      ENVIRONMENT: development
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: bankflow
+      POSTGRES_USER: bankflow_user
+      POSTGRES_PASSWORD: change_me_in_production
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ANALYTICS_CACHE_TTL: 60
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    networks:
+      - bankflow-net
+
+  # ── Frontend ────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: bankflow-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - auth-service
+      - banking-api-service
+      - analytics-service
+    networks:
+      - bankflow-net
+
+volumes:
+  postgres_data:
+  auth_keys:
+
+networks:
+  bankflow-net:
+    driver: bridge

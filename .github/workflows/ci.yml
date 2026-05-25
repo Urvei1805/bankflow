@@ -1,0 +1,206 @@
+# ============================================================
+# BankFlow — CI/CD Pipeline
+# ============================================================
+# Runs on push to main:
+# - Lint, test, coverage for all services
+# - Security scanning (Bandit + Trivy)
+# - Docker image builds
+# ============================================================
+
+name: BankFlow CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "20"
+
+jobs:
+  # ── Lint & Test: Auth Service ───────────────────────────────
+  auth-service:
+    name: Auth Service
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/auth-service
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: bankflow_test
+          POSTGRES_USER: bankflow_user
+          POSTGRES_PASSWORD: test_password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx coverage ruff bandit
+
+      - name: Lint with Ruff
+        run: ruff check app/ --ignore E501
+
+      - name: Run tests with coverage
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: bankflow_test
+          POSTGRES_USER: bankflow_user
+          POSTGRES_PASSWORD: test_password
+          JWT_SECRET_KEY: test-secret-key
+        run: |
+          coverage run -m pytest app/tests/ -v
+          coverage report --min-coverage=60
+
+      - name: Security scan with Bandit
+        run: bandit -r app/ -ll --skip B101
+        continue-on-error: true
+
+  # ── Lint & Test: Banking Service ────────────────────────────
+  banking-service:
+    name: Banking API Service
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/banking-api-service
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx coverage ruff bandit
+
+      - name: Lint with Ruff
+        run: ruff check app/ --ignore E501
+
+      - name: Run tests
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_DB: bankflow_test
+          POSTGRES_USER: bankflow_user
+          POSTGRES_PASSWORD: test_password
+          JWT_SECRET_KEY: test-secret-key
+        run: pytest app/tests/ -v
+
+      - name: Security scan
+        run: bandit -r app/ -ll --skip B101
+        continue-on-error: true
+
+  # ── Lint & Test: Analytics Service ──────────────────────────
+  analytics-service:
+    name: Analytics Service
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/analytics-service
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx coverage ruff bandit
+
+      - name: Lint
+        run: ruff check app/ --ignore E501
+
+      - name: Run tests
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_DB: bankflow_test
+          POSTGRES_USER: bankflow_user
+          POSTGRES_PASSWORD: test_password
+        run: pytest app/tests/ -v
+
+      - name: Security scan
+        run: bandit -r app/ -ll --skip B101
+        continue-on-error: true
+
+  # ── Frontend ────────────────────────────────────────────────
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Build
+        run: npm run build
+
+  # ── Docker Build ────────────────────────────────────────────
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [auth-service, banking-service, analytics-service, frontend]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Auth Service
+        run: docker build -t bankflow/auth-service:${{ github.sha }} services/auth-service
+
+      - name: Build Banking Service
+        run: docker build -t bankflow/banking-api-service:${{ github.sha }} services/banking-api-service
+
+      - name: Build Analytics Service
+        run: docker build -t bankflow/analytics-service:${{ github.sha }} services/analytics-service
+
+      - name: Build Frontend
+        run: docker build -t bankflow/frontend:${{ github.sha }} frontend
+
+      # ── Trivy Scan ──────────────────────────────────────────
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: bankflow/auth-service:${{ github.sha }}
+          format: table
+          severity: CRITICAL,HIGH
+        continue-on-error: true
+
+      # TODO: Push to ECR/DockerHub in production
+      # Requires secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, ECR_REGISTRY

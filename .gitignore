@@ -1,0 +1,59 @@
+# BankFlow — Git Ignore
+# ============================================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+ENV/
+
+# Environment
+.env
+*.pem
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Docker
+docker-compose.override.yml
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Data Pipeline outputs
+data-pipeline/data-generator/output/
+data-pipeline/batch/output/
+data-pipeline/streaming/output/
+
+# Terraform
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.backup
+infra/terraform/*.tfplan
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Logs
+*.log
