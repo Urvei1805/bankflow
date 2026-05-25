@@ -60,6 +60,7 @@ services:
       JWT_SECRET_KEY: dev-secret-change-in-production
       JWT_PRIVATE_KEY_PATH: /app/keys/private.pem
       JWT_PUBLIC_KEY_PATH: /app/keys/public.pem
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173}
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,6 +98,7 @@ services:
       JWT_SECRET_KEY: dev-secret-change-in-production
       JWT_PUBLIC_KEY_PATH: /app/keys/public.pem
       RATE_LIMIT_PER_MINUTE: 100
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173}
     depends_on:
       postgres:
         condition: service_healthy
@@ -133,6 +135,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       ANALYTICS_CACHE_TTL: 60
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173}
     depends_on:
       postgres:
         condition: service_healthy

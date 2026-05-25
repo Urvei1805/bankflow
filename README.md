@@ -329,7 +329,7 @@ bankflow/
 
 ## 🔮 Future Improvements
 
-- [ ] Alembic database migrations
+- [x] Alembic database migrations
 - [ ] Kafka/Redpanda real streaming integration
 - [ ] API Gateway (Kong/Tyk)
 - [ ] OpenTelemetry distributed tracing

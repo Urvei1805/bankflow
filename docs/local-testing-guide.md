@@ -119,3 +119,22 @@ http://localhost:3000
 
 **Error:** Missing RSA Keys (`private.pem` not found)
 **Fix:** Ensure the Dockerfile generates the RSA keys at **runtime** using an `entrypoint.sh` script, instead of during the image build process, so they persist in the mapped Docker volume.
+
+## 13. Database Migrations (Alembic)
+
+BankFlow uses Alembic for database migrations. By default in local development (`ENVIRONMENT=development`), the FastAPI lifecycle will automatically create tables (`create_all()`).
+
+For production or to test migrations manually, run them via Docker:
+
+```bash
+# Apply migrations for Auth Service
+docker compose exec auth-service alembic upgrade head
+
+# Apply migrations for Banking API Service
+docker compose exec banking-api-service alembic upgrade head
+```
+
+To generate a new migration after modifying models:
+```bash
+docker compose exec auth-service alembic revision --autogenerate -m "description"
+```
