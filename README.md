@@ -378,3 +378,40 @@ In AWS, all sensitive values MUST be stored in AWS Secrets Manager and injected 
 - JWT_PRIVATE_KEY_PATH / JWT_PUBLIC_KEY_PATH (or injected as raw keys if modified)
 - JWT_SECRET_KEY: HS256 fallback secret
 - API_KEY_SECRET: Secret used to hash internal API keys
+## ?? Frontend Application
+
+The BankFlow frontend is a modern, responsive React application utilizing Vite, React Router DOM, and Recharts. It is designed with a premium, glassmorphic dark FinTech aesthetic.
+
+### Features
+- **Dashboard**: High-level SOC (Security Operations Center) view with analytics summaries, live web-socket connections, and fraud risk distributions.
+- **Transactions Explorer**: Search, filter, and view live transactions arriving from the backend in real-time.
+- **Deep Analytics**: Visualization of transaction volume trends, spending categories, and historical fraud data using Recharts.
+- **Risk Monitoring**: Security-focused view highlighting anomalous behaviors, Geo-mismatches, velocity rules, and high-risk review queues.
+- **API Health**: Diagnostic panel to check backend service health endpoints, database status, and API latencies.
+- **Settings**: Local frontend preferences for overriding API endpoints and managing demo fallback data.
+
+### Environment Variables
+The frontend relies on the following Vite environment variables at build-time:
+- VITE_AUTH_API_URL (default: http://localhost:8001)
+- VITE_BANKING_API_URL (default: http://localhost:8002)
+- VITE_ANALYTICS_API_URL (default: http://localhost:8003)
+- VITE_WS_URL (default: ws://localhost:8002)
+
+### Running Locally
+To run the frontend in development mode independently:
+`ash
+cd frontend
+npm install
+npm run dev
+`
+
+### Building for Production
+`ash
+cd frontend
+npm install
+npm run build
+`
+The resulting static files will be placed in the rontend/dist directory and can be served via Nginx or AWS CloudFront.
+
+### Screenshots
+*(Add screenshots of the dashboard, risk monitoring, and analytics pages here!)*
